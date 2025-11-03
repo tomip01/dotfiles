@@ -1,8 +1,8 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
-vim.cmd("set tabstop=2")
-vim.cmd("set softtabstop=2")
-vim.cmd("set shiftwidth=2")
+vim.opt.tabstop = 2
+vim.opt.softtabstop = 2
+vim.opt.shiftwidth = 2
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.cursorline = true
@@ -11,14 +11,13 @@ vim.opt.swapfile = false
 vim.opt.backup = false
 vim.opt.splitbelow = true
 vim.opt.splitright = true
-vim.opt.list = true
-vim.opt.listchars = { space = "·" }
+vim.opt.list = false
 
 -- Auto-reload files when changed outside of Neovim
 vim.opt.autoread = true
 vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHoldI" }, {
-  pattern = "*",
-  command = "checktime",
+	pattern = "*",
+	command = "checktime",
 })
 
 -- Common LSP config
