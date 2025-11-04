@@ -12,6 +12,7 @@ vim.opt.backup = false
 vim.opt.splitbelow = true
 vim.opt.splitright = true
 vim.opt.list = false
+vim.opt.clipboard = "unnamedplus"
 
 -- Auto-reload files when changed outside of Neovim
 vim.opt.autoread = true

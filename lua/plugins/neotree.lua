@@ -18,6 +18,13 @@ return {
             ["l"] = "open",              -- l también abre
           },
         },
+				filesystem = {
+					filtered_items = {
+						visible = true,
+						hide_dotfiles = false,
+						hide_gitignored = false
+					}
+				}
       })
       vim.keymap.set("n", "<C-b>", ":Neotree toggle focus<CR>", { silent = true })
     end
