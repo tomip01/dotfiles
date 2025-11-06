@@ -14,92 +14,95 @@ return {
     },
     config = function()
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
-      local has_new = vim.lsp and vim.lsp.config and vim.lsp.enable
-      local lspconfig = nil
-      if not has_new then
-        lspconfig = require("lspconfig")
-      end
-
       local function setup(server, opts)
         opts = opts or {}
         opts.capabilities = vim.tbl_deep_extend("force", opts.capabilities or {}, capabilities)
-        if has_new then
-          vim.lsp.config(server, opts)
-          vim.lsp.enable(server)
-        else
-          lspconfig[server].setup(opts)
-        end
+        vim.lsp.config(server, opts)
+        vim.lsp.enable(server)
       end
 
       require("mason-lspconfig").setup({
         ensure_installed = { "lua_ls", "rust_analyzer", "elixirls", "solidity_ls" },
-        handlers = {
-          function(server_name)
-            if server_name == "rust_analyzer" or server_name == "solc" then
+        automatic_enable = { exclude = { "rust_analyzer", "solc" } },
+      })
+
+      setup("elixirls", {
+        cmd = { vim.fn.stdpath("data") .. "/mason/bin/elixir-ls" },
+      })
+
+      setup("lua_ls", {
+        settings = {
+          Lua = {
+            diagnostics = {
+              globals = { "vim" },
+            },
+          },
+        },
+      })
+
+      setup("solidity_ls", {
+        cmd_env = {
+          PATH = vim.fn.stdpath("data") .. "/mason/bin:" .. vim.env.PATH,
+        },
+      })
+
+      setup("rust_analyzer", {
+        cmd = { vim.fn.stdpath("data") .. "/mason/bin/rust-analyzer" },
+        on_attach = function(client, bufnr)
+          local function map(lhs, rhs, desc)
+            vim.keymap.set("n", lhs, rhs, { buffer = bufnr, desc = desc and ("Rust: " .. desc) or nil })
+          end
+
+          map("<leader>rh", vim.lsp.buf.hover, "Hover")
+          map("<leader>ra", vim.lsp.buf.code_action, "Code Action")
+
+          local function set_inlay(enable)
+            if not client.server_capabilities.inlayHintProvider then
               return
             end
-            setup(server_name, {})
-          end,
+            local inlay = vim.lsp.inlay_hint
+            if type(inlay) == "table" and type(inlay.enable) == "function" then
+              pcall(inlay.enable, enable, { bufnr = bufnr })
+            elseif type(inlay) == "function" then
+              pcall(inlay, bufnr, enable)
+            elseif vim.lsp.buf and type(vim.lsp.buf.inlay_hint) == "function" then
+              pcall(vim.lsp.buf.inlay_hint, bufnr, enable)
+            end
+          end
 
-          ["elixirls"] = function()
-            setup("elixirls", {
-              cmd = { vim.fn.stdpath("data") .. "/mason/bin/elixir-ls" },
-            })
-          end,
-
-          ["lua_ls"] = function()
-            setup("lua_ls", {
-              settings = {
-                Lua = {
-                  diagnostics = {
-                    globals = { "vim" },
-                  },
-                },
+          if client.server_capabilities.inlayHintProvider then
+            set_inlay(true)
+            map("<leader>ri", function()
+              local inlay = vim.lsp.inlay_hint
+              local enabled = nil
+              if type(inlay) == "table" and type(inlay.is_enabled) == "function" then
+                enabled = inlay.is_enabled { bufnr = bufnr }
+              end
+              set_inlay(not enabled)
+            end, "Toggle Inlay Hints")
+          end
+        end,
+        settings = {
+          ["rust-analyzer"] = {
+            checkOnSave = true,
+            check = {
+              command = "clippy",
+            },
+            inlayHints = {
+              bindingModeHints = { enable = true },
+              chainingHints = { enable = true },
+              lifetimeElisionHints = {
+                enable = "always",
+                useParameterNames = true,
               },
-            })
-          end,
-
-          ["rust_analyzer"] = function()
-            setup("rust_analyzer", {
-              cmd = { vim.fn.stdpath("data") .. "/mason/bin/rust-analyzer" },
-              on_attach = function(client, bufnr)
-                local function map(lhs, rhs, desc)
-                  vim.keymap.set("n", lhs, rhs, { buffer = bufnr, desc = desc and ("Rust: " .. desc) or nil })
-                end
-
-                map("<leader>rh", vim.lsp.buf.hover, "Hover")
-                map("<leader>ra", vim.lsp.buf.code_action, "Code Action")
-
-                if client.server_capabilities.inlayHintProvider then
-                  local inlay = vim.lsp.inlay_hint
-                  if type(inlay) == "function" then
-                    pcall(inlay, bufnr, true)
-                  elseif type(inlay) == "table" and type(inlay.enable) == "function" then
-                    pcall(inlay.enable, bufnr, true)
-                  elseif vim.lsp.buf and type(vim.lsp.buf.inlay_hint) == "function" then
-                    pcall(vim.lsp.buf.inlay_hint, bufnr, true)
-                  end
-                end
-              end,
-              settings = {
-                ["rust-analyzer"] = {
-                  checkOnSave = {
-                    command = "clippy",
-                  },
-                },
+              parameterHints = { enable = true },
+              typeHints = {
+                enable = true,
+                hideClosureInitialization = false,
+                hideNamedConstructor = false,
               },
-            })
-          end,
-
-          ["solidity_ls"] = function()
-            setup("solidity_ls", {
-              cmd_env = {
-                PATH = vim.fn.stdpath("data") .. "/mason/bin:" .. vim.env.PATH,
-              },
-            })
-          end,
-
-          ["solc"] = function() end,
+            },
+          },
         },
       })
 
